@@ -6,8 +6,37 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="c-blog" />
+        <module name="cblog-web" />
+        <module name="cblog-search" />
+        <module name="cblog-common" />
+        <module name="cblog-admin" />
+        <module name="cblog-xo" />
+        <module name="cblog-base" />
+        <module name="cblog-sms" />
+        <module name="cblog-gateway" />
+        <module name="cblog-monitor" />
+        <module name="cblog-utils" />
+        <module name="cblog-picture" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="cblog-zipkin" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="cblog-admin" options="-parameters" />
+      <module name="cblog-base" options="-parameters" />
+      <module name="cblog-common" options="-parameters" />
+      <module name="cblog-gateway" options="-parameters" />
+      <module name="cblog-monitor" options="-parameters" />
+      <module name="cblog-picture" options="-parameters" />
+      <module name="cblog-search" options="-parameters" />
+      <module name="cblog-sms" options="-parameters" />
+      <module name="cblog-utils" options="-parameters" />
+      <module name="cblog-web" options="-parameters" />
+      <module name="cblog-xo" options="-parameters" />
+      <module name="cblog-zipkin" options="-parameters" />
+    </option>
   </component>
 </project>
