@@ -15,12 +15,13 @@ import com.can.cblog.xo.global.MessageConf;
 import com.can.cblog.xo.global.SQLConf;
 import com.can.cblog.xo.global.SysConf;
 import com.can.cblog.xo.mapper.PictureMapper;
+import com.can.cblog.xo.producer.message.BlogMessage;
 import com.can.cblog.xo.service.BlogService;
 import com.can.cblog.xo.service.PictureService;
 import com.can.cblog.xo.service.PictureSortService;
 import com.can.cblog.xo.utils.WebUtil;
 import com.can.cblog.xo.vo.PictureVO;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,7 +51,7 @@ public class PictureServiceImpl extends SuperServiceImpl<PictureMapper, Picture>
     private PictureFeignClient pictureFeignClient;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private RocketMQTemplate rocketMQTemplate;
 
     @Override
     public IPage<Picture> getPageList(PictureVO pictureVO) {
@@ -118,7 +119,6 @@ public class PictureServiceImpl extends SuperServiceImpl<PictureMapper, Picture>
     @Override
     public String editPicture(PictureVO pictureVO) {
         Picture picture = pictureService.getById(pictureVO.getUid());
-        // 这里需要更新所有的博客，将图片替换成 裁剪的图片
         QueryWrapper<Blog> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq(SQLConf.STATUS, EStatus.ENABLE);
         queryWrapper.eq(SQLConf.FILE_UID, picture.getFileUid());
@@ -132,8 +132,8 @@ public class PictureServiceImpl extends SuperServiceImpl<PictureMapper, Picture>
             Map<String, Object> map = new HashMap<>();
             map.put(SysConf.COMMAND, SysConf.EDIT_BATCH);
 
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend(SysConf.EXCHANGE_DIRECT, SysConf.CBLOG_BLOG, map);
+            //发送到rocketmq
+            rocketMQTemplate.syncSend(BlogMessage.TOPIC, map);
         }
         picture.setFileUid(pictureVO.getFileUid());
         picture.setPicName(pictureVO.getPicName());

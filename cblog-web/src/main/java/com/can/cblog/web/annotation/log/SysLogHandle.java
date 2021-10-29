@@ -84,7 +84,6 @@ public class SysLogHandle extends AbstractRequestAwareRunnable {
      */
     @Override
     protected void onRun() {
-        System.out.println("============" + Thread.currentThread().getName());
         WebVisit webVisit = new WebVisit();
         webVisit.setIp(ip);
         //从Redis中获取IP来源

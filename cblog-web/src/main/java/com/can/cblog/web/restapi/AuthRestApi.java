@@ -24,7 +24,7 @@ import com.can.cblog.web.global.RedisConf;
 import com.can.cblog.web.global.SQLConf;
 import com.can.cblog.web.global.SysConf;
 import com.can.cblog.xo.service.*;
-import com.can.cblog.xo.utils.RabbitMqUtil;
+import com.can.cblog.xo.utils.RocketMqUtil;
 import com.can.cblog.xo.utils.WebUtil;
 import com.can.cblog.xo.vo.FeedbackVO;
 import com.can.cblog.xo.vo.LinkVO;
@@ -85,7 +85,7 @@ public class AuthRestApi {
     private LinkService linkService;
 
     @Autowired
-    private RabbitMqUtil rabbitMqUtil;
+    private RocketMqUtil rocketMqUtil;
 
     @Autowired
     private UserService userService;
@@ -125,15 +125,6 @@ public class AuthRestApi {
 
     @Value(value = "${DEFAULE_PWD}")
     private String DEFAULE_PWD;
-
-    @Value(value = "${uniapp.qq.appid}")
-    private String APP_ID;
-
-    @Value(value = "${uniapp.qq.appid}")
-    private String SECRET;
-
-    @Value(value = "${uniapp.qq.grant_type}")
-    private String GRANT_TYPE;
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
@@ -334,136 +325,7 @@ public class AuthRestApi {
         }
     }
 
-    /**
-     * 解析移动端数据
-     *
-     * @param map
-     * @return
-     */
-    @ApiOperation(value = "decryptData", notes = "QQ小程序登录数据解析")
-    @PostMapping("/decryptData")
-    public String decryptData(@RequestBody Map<String, String> map) throws UnsupportedEncodingException {
 
-        String encryptDataB64 = map.get("encryptDataB64");
-        String jsCode = map.get("jsCode");
-        String ivB64 = map.get("ivB64");
-        HashMap<String, Object> paramMap = new HashMap<>();
-        paramMap.put("appid", APP_ID);
-        paramMap.put("secret", SECRET);
-        paramMap.put("js_code", jsCode);
-        paramMap.put("grant_type", GRANT_TYPE);
-
-        String result = HttpUtil.get("https://api.q.qq.com/sns/jscode2session", paramMap);
-        log.info("获取UnionID");
-        log.info(result);
-        Map<String, Object> resultMap = JsonUtils.jsonToMap(result);
-
-        if (resultMap != null) {
-            String sessionKey = resultMap.get("session_key").toString();
-            String userInfo = UniappUtils.decryptData(encryptDataB64, sessionKey, ivB64);
-            log.info(userInfo);
-            Map<String, Object> userInfoMap = JsonUtils.jsonToMap(userInfo);
-
-            Boolean exist = false;
-            User user = null;
-            //判断user是否存在
-            if (userInfoMap.get(SysConf.OPEN_ID) != null) {
-                user = userService.getUserBySourceAnduuid("QQ", userInfoMap.get(SysConf.OPEN_ID).toString());
-                if (user != null) {
-                    log.info("用户已存在");
-                    exist = true;
-                } else {
-                    log.info("用户未存在，开始创建新用户");
-                    user = new User();
-                }
-            } else {
-                log.info("无法获取到openId");
-                return ResultUtil.result(SysConf.ERROR, MessageConf.PARAM_INCORRECT);
-            }
-
-            // 判断用户性别
-            if (userInfoMap.get(SysConf.GENDER) != null) {
-                log.info("获取用户性别:{}", userInfoMap.get(SysConf.GENDER));
-                String genderStr = userInfoMap.get(SysConf.GENDER).toString();
-                String gender = Double.valueOf(genderStr).intValue() + "";
-                if (EGender.MALE.equals(gender)) {
-                    user.setGender(EGender.MALE);
-                } else if (EGender.FEMALE.equals(gender)) {
-                    user.setGender(EGender.FEMALE);
-                } else {
-                    user.setGender(EGender.UNKNOWN);
-                }
-            }
-
-            // 通过头像uid获取图片
-            String pictureList = this.pictureFeignClient.getPicture(user.getAvatar(), SysConf.FILE_SEGMENTATION);
-            List<String> photoList = webUtil.getPicture(pictureList);
-            Map<String, Object> picMap = (Map<String, Object>) JsonUtils.jsonToObject(pictureList, Map.class);
-            log.info("获取用户头像信息:{}", JsonUtils.objectToJson(picMap));
-            // 判断该用户是否含有头像信息
-            if (SysConf.SUCCESS.equals(picMap.get(SysConf.CODE)) && photoList.size() > 0) {
-                List<Map<String, Object>> picData = (List<Map<String, Object>>) picMap.get(SysConf.DATA);
-                String fileOldName = picData.get(0).get(SysConf.FILE_OLD_NAME).toString();
-
-                // 判断本地的图片是否和第三方登录的一样，如果不一样，那么更新
-                // 如果旧名称为blob表示是用户自定义的，代表用户在本网站使用了自定义头像，那么就再也不同步更新网站上的了
-                if (fileOldName.equals(userInfoMap.get(SysConf.AVATAR_URL)) || SysConf.BLOB.equals(fileOldName)) {
-                    user.setPhotoUrl(photoList.get(0));
-                } else {
-                    updateUserPhoto(userInfoMap, user);
-                }
-            } else {
-                updateUserPhoto(userInfoMap, user);
-            }
-
-            if (userInfoMap.get(SysConf.NICK_NAME) != null) {
-                user.setNickName(userInfoMap.get(SysConf.NICK_NAME).toString());
-            }
-
-            if (user.getLoginCount() == null) {
-                user.setLoginCount(0);
-            } else {
-                user.setLoginCount(user.getLoginCount() + 1);
-            }
-
-            // 获取浏览器，IP来源，以及操作系统
-            user = userService.serRequestInfo(user);
-
-            // 暂时将token也存入到user表中，为了以后方便更新redis中的内容
-            String accessToken = StringUtils.getUUID();
-            user.setValidCode(accessToken);
-
-            if (exist) {
-                user.updateById();
-                log.info("向数据库更新用户信息");
-                log.info(JsonUtils.objectToJson(user));
-            } else {
-                user.setUuid(userInfoMap.get(SysConf.OPEN_ID).toString());
-                user.setSource("QQ");
-                String userName = PROJECT_NAME_EN.concat("_").concat(user.getSource()).concat("_").concat(user.getUuid());
-                user.setUserName(userName);
-                // 如果昵称为空，那么直接设置用户名
-                if (StringUtils.isEmpty(user.getNickName())) {
-                    user.setNickName(userName);
-                }
-                // 默认密码
-                user.setPassWord(MD5Utils.string2MD5(DEFAULE_PWD));
-                // 设置是否开启评论邮件通知【关闭】
-                user.insert();
-                log.info("插入用户信息: {}", user);
-            }
-            // 过滤密码【因需要传递到前台，数据脱敏】
-            user.setPassWord("");
-            if (user != null) {
-                //将从数据库查询的数据缓存到redis中
-                stringRedisTemplate.opsForValue().set(RedisConf.USER_TOKEN + Constants.SYMBOL_COLON + accessToken, JsonUtils.objectToJson(user), userTokenSurvivalTime, TimeUnit.HOURS);
-            }
-            return ResultUtil.result(SysConf.SUCCESS, user);
-        } else {
-            return ResultUtil.result(SysConf.ERROR, MessageConf.PARAM_INCORRECT);
-        }
-
-    }
 
     @RequestMapping("/revoke/{source}/{token}")
     public Object revokeAuth(@PathVariable("source") String source, @PathVariable("token") String token) throws IOException {
@@ -552,8 +414,8 @@ public class AuthRestApi {
         // 判断用户是否更改了邮箱
         if (userVO.getEmail() != null && !userVO.getEmail().equals(user.getEmail())) {
             user.setEmail(userVO.getEmail());
-            // 使用RabbitMQ发送邮件
-            rabbitMqUtil.sendRegisterEmail(user, token);
+            // 使用MQ发送邮件
+            rocketMqUtil.sendRegisterEmail(user, token);
             // 修改成功后，更新Redis中的用户信息
             stringRedisTemplate.opsForValue().set(RedisConf.USER_TOKEN + Constants.SYMBOL_COLON + token, JsonUtils.objectToJson(user), userTokenSurvivalTime, TimeUnit.HOURS);
             return ResultUtil.result(SysConf.SUCCESS, "您已修改邮箱，请先到邮箱进行确认绑定");
@@ -611,7 +473,7 @@ public class AuthRestApi {
                         + "名称：" + linkVO.getTitle() + "<br />"
                         + "简介：" + linkVO.getSummary() + "<br />"
                         + "地址：" + linkVO.getUrl();
-                rabbitMqUtil.sendSimpleEmail(systemConfig.getEmail(), feedback);
+                rocketMqUtil.sendSimpleEmail(systemConfig.getEmail(), feedback);
             } else {
                 log.error("网站没有配置通知接收的邮箱地址！");
             }
@@ -706,7 +568,7 @@ public class AuthRestApi {
                 String feedback = "网站收到新的反馈: " + "<br />"
                         + "标题：" + feedbackVO.getTitle() + "<br />" + "<br />"
                         + "内容" + feedbackVO.getContent();
-                rabbitMqUtil.sendSimpleEmail(systemConfig.getEmail(), feedback);
+                rocketMqUtil.sendSimpleEmail(systemConfig.getEmail(), feedback);
             } else {
                 log.error("网站没有配置通知接收的邮箱地址！");
             }

@@ -151,4 +151,8 @@ public class Constants {
     //异常类型
     public static final String DELIMITER_TO = "@";
     public static final String DELIMITER_COLON = ":";
+
+    //boolean值
+    public static final String FALSE = "false";
+    public static final String TRUE = "true";
 }

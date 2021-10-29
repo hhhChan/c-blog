@@ -20,7 +20,7 @@ import com.can.cblog.xo.global.SQLConf;
 import com.can.cblog.xo.global.SysConf;
 import com.can.cblog.xo.mapper.LinkMapper;
 import com.can.cblog.xo.service.LinkService;
-import com.can.cblog.xo.utils.RabbitMqUtil;
+import com.can.cblog.xo.utils.RocketMqUtil;
 import com.can.cblog.xo.utils.WebUtil;
 import com.can.cblog.xo.vo.LinkVO;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +51,7 @@ public class LinkServiceImpl extends SuperServiceImpl<LinkMapper, Link> implemen
     private WebUtil webUtil;
 
     @Autowired
-    private RabbitMqUtil rabbitMqUtil;
+    private RocketMqUtil rocketMqUtil;
 
     @Autowired
     private RedisUtil redisUtil;
@@ -144,7 +144,7 @@ public class LinkServiceImpl extends SuperServiceImpl<LinkMapper, Link> implemen
         if(StringUtils.isNotEmpty(link.getEmail()) && CheckUtils.checkEmail(link.getEmail())) {
             log.info("发送友链申请通过的邮件通知");
             String linkApplyText =  "<a href=\" " + link.getUrl() + "\">" + link.getTitle() + "</a> 站长，您申请的友链已经成功上架~";
-            rabbitMqUtil.sendSimpleEmail(link.getEmail(), linkApplyText);
+            rocketMqUtil.sendSimpleEmail(link.getEmail(), linkApplyText);
         }
 
         // 删除Redis中的BLOG_LINK
@@ -172,7 +172,7 @@ public class LinkServiceImpl extends SuperServiceImpl<LinkMapper, Link> implemen
             if(ELinkStatus.APPLY.equals(linkStatus) && ELinkStatus.PUBLISH.equals(linkVO.getLinkStatus())) {
                 log.info("发送友链申请通过的邮件通知");
                 String linkApplyText =  "<a href=\" " + link.getUrl() + "\">" + link.getTitle() + "</a> 站长，您申请的友链已经成功上架~";
-                rabbitMqUtil.sendSimpleEmail(link.getEmail(), linkApplyText);
+                rocketMqUtil.sendSimpleEmail(link.getEmail(), linkApplyText);
             }
         }
 

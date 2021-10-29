@@ -21,7 +21,7 @@ import com.can.cblog.web.global.RedisConf;
 import com.can.cblog.web.global.SQLConf;
 import com.can.cblog.web.global.SysConf;
 import com.can.cblog.xo.service.*;
-import com.can.cblog.xo.utils.RabbitMqUtil;
+import com.can.cblog.xo.utils.RocketMqUtil;
 import com.can.cblog.xo.utils.WebUtil;
 import com.can.cblog.xo.vo.CommentVO;
 import com.can.cblog.xo.vo.UserVO;
@@ -65,7 +65,7 @@ public class CommentRestApi {
     private SystemConfigService systemConfigService;
 
     @Autowired
-    private RabbitMqUtil rabbitMqUtil;
+    private RocketMqUtil rocketMqUtil;
 
     @Autowired
     private BlogService blogService;
@@ -575,7 +575,7 @@ public class CommentRestApi {
                     }
                     map.put(SysConf.URL, url);
                     // 发送评论邮件
-                    rabbitMqUtil.sendCommentEmail(map);
+                    rocketMqUtil.sendCommentEmail(map);
                 }
             }
         }
@@ -608,7 +608,7 @@ public class CommentRestApi {
                     String sourceName = ECommentSource.valueOf(commentVO.getSource()).getName();
                     String linkText = "<a href=\" " + getUrlByCommentSource(commentVO) + "\">" + sourceName + "</a>\n";
                     String commentContent = linkText + "收到新的评论: " + commentVO.getContent();
-                    rabbitMqUtil.sendSimpleEmail(systemConfig.getEmail(), commentContent);
+                    rocketMqUtil.sendSimpleEmail(systemConfig.getEmail(), commentContent);
                 } else {
                     log.error("网站没有配置通知接收的邮箱地址！");
                 }

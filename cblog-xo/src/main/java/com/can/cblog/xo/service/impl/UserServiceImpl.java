@@ -154,10 +154,10 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
     public IPage<User> getPageList(UserVO userVO) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         // 查询用户名
-        if (StringUtils.isNotEmpty(userVO.getKeyword()) && !StringUtils.isEmpty(userVO.getKeyword().trim())) {
+        if (StringUtils.isNotEmpty(userVO.getKeyword().trim())) {
             queryWrapper.like(SQLConf.USER_NAME, userVO.getKeyword().trim()).or().like(SQLConf.NICK_NAME, userVO.getKeyword().trim());
         }
-        if (StringUtils.isNotEmpty(userVO.getSource()) && !StringUtils.isEmpty(userVO.getSource().trim())) {
+        if (StringUtils.isNotEmpty(userVO.getSource().trim())) {
             queryWrapper.eq(SQLConf.SOURCE, userVO.getSource().trim());
         }
         if (userVO.getCommentStatus() != null) {
@@ -187,6 +187,7 @@ public class UserServiceImpl extends SuperServiceImpl<UserMapper, User> implemen
 
         final StringBuffer fileUids = new StringBuffer();
         list.forEach(item -> {
+            System.out.println(item);
             if (StringUtils.isNotEmpty(item.getAvatar())) {
                 fileUids.append(item.getAvatar() + SysConf.FILE_SEGMENTATION);
             }

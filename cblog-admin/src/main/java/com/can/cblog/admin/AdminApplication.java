@@ -1,6 +1,5 @@
 package com.can.cblog.admin;
 
-import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
@@ -21,7 +20,6 @@ import java.util.TimeZone;
 @EnableOpenApi
 @EnableDiscoveryClient
 @EnableCaching
-@EnableRabbit
 @EnableFeignClients("com.can.cblog.common.feign")
 @ComponentScan(basePackages = {
         "com.can.cblog.common.config",

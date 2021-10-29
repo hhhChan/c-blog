@@ -19,7 +19,7 @@ import com.can.cblog.web.global.SysConf;
 import com.can.cblog.xo.service.SystemConfigService;
 import com.can.cblog.xo.service.UserService;
 import com.can.cblog.xo.service.WebConfigService;
-import com.can.cblog.xo.utils.RabbitMqUtil;
+import com.can.cblog.xo.utils.RocketMqUtil;
 import com.can.cblog.xo.utils.WebUtil;
 import com.can.cblog.xo.vo.UserVO;
 import io.swagger.annotations.Api;
@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 public class LoginRestApi {
 
     @Autowired
-    private RabbitMqUtil rabbitMqUtil;
+    private RocketMqUtil rocketmqUtil;
 
     @Autowired
     private WebConfigService webConfigService;
@@ -182,7 +182,7 @@ public class LoginRestApi {
             //将从数据库查询的数据缓存到redis中，用于用户邮箱激活，1小时后过期
             redisUtil.setEx(RedisConf.ACTIVATE_USER + RedisConf.SEGMENTATION + token, JsonUtils.objectToJson(user), 1, TimeUnit.HOURS);
             // 发送邮件，进行账号激活
-            rabbitMqUtil.sendActivateEmail(user, token);
+            rocketmqUtil.sendActivateEmail(user, token);
             resultMessage = "注册成功，请登录邮箱进行账号激活";
         }
         return ResultUtil.result(SysConf.SUCCESS, resultMessage);

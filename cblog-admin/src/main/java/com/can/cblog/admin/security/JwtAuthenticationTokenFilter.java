@@ -70,7 +70,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
         //得到请求头信息authorization信息
         String authHeader = request.getHeader(tokenHeader);
 
-        //TODO 判断是否触发 cblog-picture发送的请求【图片上传鉴权，需要用户登录，携带token请求admin，后期考虑加入OAuth服务统一鉴权】
+        // 判断是否触发 cblog-picture发送的请求【图片上传鉴权，需要用户登录，携带token请求admin，后期考虑加入OAuth服务统一鉴权】
         final String pictureToken = request.getHeader("pictureToken");
         if (StringUtils.isNotEmpty(pictureToken)) {
             authHeader = pictureToken;

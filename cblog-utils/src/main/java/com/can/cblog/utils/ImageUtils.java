@@ -24,7 +24,7 @@ public class ImageUtils {
         //这里文字的size，建议设置大一点，其实就是像素会高一点，然后缩放后，效果会好点，最好是你实际输出的倍数，然后缩放的时候，直接按倍数缩放即可。
         Font font = new Font("微软雅黑", Font.PLAIN, 130);
 
-        createImage("蘑菇博客", font, Paths.get(rootPath, "sojson-image.png").toFile());
+        createImage("博客", font, Paths.get(rootPath, "sojson-image.png").toFile());
     }
 
     private static int[] getWidthAndHeight(String text, Font font) {

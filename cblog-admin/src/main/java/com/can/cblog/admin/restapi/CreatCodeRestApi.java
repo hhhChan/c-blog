@@ -5,11 +5,13 @@ import com.can.cblog.admin.global.SysConf;
 import com.can.cblog.base.global.Constants;
 import com.can.cblog.utils.CheckUtils;
 import com.can.cblog.utils.ResultUtil;
+import com.can.cblog.xo.producer.message.MailMessage;
+import com.can.cblog.xo.producer.message.SmsMessage;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -37,7 +39,7 @@ public class CreatCodeRestApi {
     private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private RocketMQTemplate rocketMQTemplate;
 
     @Value(value = "${templateCode}")
     private String templateCode;
@@ -78,8 +80,8 @@ public class CreatCodeRestApi {
                         "<div class=\"email-body\" style=\"background-color: rgb(246, 244, 236);\">\r\n" +
                         "<div class=\"container\">\r\n" +
                         "<div class=\"logo\">\r\n" +
-                        "<img src=\"http://picture.moguit.cn/blog/admin/jpg/2018/10/21/logo.jpg\",height=\"100\" width=\"100\">\r\n" +
-                        "</div>\r\n" +
+                            "<img src=\"http://r14er44op.hd-bkt.clouddn.com/026e9ce337e7465d98fde62c13d16510\",height=\"100\" width=\"100\">\r\n" +
+                            "</div>\r\n" +
                         "<div class=\"panel\" style=\"background-color: rgb(246, 244, 236);\">\r\n" +
                         "<div class=\"panel-header\" style=\"background-color: rgb(246, 244, 236);\">\r\n" +
                         "注册验证\r\n" +
@@ -105,10 +107,11 @@ public class CreatCodeRestApi {
 
         Map<String, String> map = new HashMap<>(Constants.NUM_FOUR);
         if (CheckUtils.checkEmail(info)) {
-            map.put("receiver", info);
-            map.put("text", text);
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend("exchange.direct", "cblog.email", map);
+
+            MailMessage message = new MailMessage();
+            message.setReceiver(info);
+            message.setText(text);
+            rocketMQTemplate.syncSend(MailMessage.TOPIC, message);
         }
         if (CheckUtils.checkMobileNumber(info)) {
             //code是我们申请模板时写的参数
@@ -119,8 +122,8 @@ public class CreatCodeRestApi {
             map.put("template_code", templateCode);
             //短信签名
             map.put("sign_name", signName);
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend("exchange.direct", "cblog.sms", map);
+            //发送到rocket
+            rocketMQTemplate.syncSend(SmsMessage.TOPIC, map);
         }
 
         //存入缓存

@@ -19,12 +19,13 @@ import com.can.cblog.xo.global.SysConf;
 import com.can.cblog.xo.mapper.BlogMapper;
 import com.can.cblog.xo.mapper.BlogSortMapper;
 import com.can.cblog.xo.mapper.TagMapper;
+import com.can.cblog.xo.producer.message.BlogMessage;
 import com.can.cblog.xo.service.*;
 import com.can.cblog.xo.utils.WebUtil;
 import com.can.cblog.xo.vo.BlogVO;
 import com.google.gson.internal.LinkedTreeMap;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -94,7 +95,7 @@ public class BlogServiceImpl extends SuperServiceImpl<BlogMapper, Blog> implemen
     private PictureFeignClient pictureFeignClient;
 
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private RocketMQTemplate rocketMQTemplate;
 
     @Override
     public List<Blog> setTagByBlogList(List<Blog> list) {
@@ -853,8 +854,8 @@ public class BlogServiceImpl extends SuperServiceImpl<BlogMapper, Blog> implemen
         if (save) {
             Map<String, Object> map = new HashMap<>();
             map.put(SysConf.COMMAND, SysConf.EDIT_BATCH);
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend(SysConf.EXCHANGE_DIRECT, SysConf.CBLOG_BLOG, map);
+            //发送到Rocketmq
+            rocketMQTemplate.syncSend(BlogMessage.TOPIC, map);
         }
 
         return ResultUtil.successWithMessage(MessageConf.UPDATE_SUCCESS);
@@ -874,8 +875,8 @@ public class BlogServiceImpl extends SuperServiceImpl<BlogMapper, Blog> implemen
             map.put(SysConf.BLOG_UID, blog.getUid());
             map.put(SysConf.LEVEL, blog.getLevel());
             map.put(SysConf.CREATE_TIME, blog.getCreateTime());
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend(SysConf.EXCHANGE_DIRECT, SysConf.CBLOG_BLOG, map);
+            //发送到Rocketmq
+            rocketMQTemplate.syncSend(BlogMessage.TOPIC, map);
 
             // 移除所有包含该博客的专题Item
             List<String> blogUidList = new ArrayList<>(Constants.NUM_ONE);
@@ -911,8 +912,8 @@ public class BlogServiceImpl extends SuperServiceImpl<BlogMapper, Blog> implemen
             Map<String, Object> map = new HashMap<>();
             map.put(SysConf.COMMAND, SysConf.DELETE_BATCH);
             map.put(SysConf.UID, uidSbf);
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend(SysConf.EXCHANGE_DIRECT, SysConf.CBLOG_BLOG, map);
+            //发送到Rocketmq
+            rocketMQTemplate.syncSend(BlogMessage.TOPIC, map);
             // 移除所有包含该博客的专题Item
             subjectItemService.deleteBatchSubjectItemByBlogUid(uidList);
             // 移除该文章下所有评论
@@ -1796,9 +1797,7 @@ public class BlogServiceImpl extends SuperServiceImpl<BlogMapper, Blog> implemen
             map.put(SysConf.LEVEL, blog.getLevel());
             map.put(SysConf.CREATE_TIME, blog.getCreateTime());
 
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend(SysConf.EXCHANGE_DIRECT, SysConf.CBLOG_BLOG, map);
-
+            rocketMQTemplate.syncSend(BlogMessage.TOPIC, map);
         } else if (EPublish.NO_PUBLISH.equals(blog.getIsPublish())) {
 
             //这是需要做的是，是删除redis中的该条博客数据
@@ -1808,8 +1807,7 @@ public class BlogServiceImpl extends SuperServiceImpl<BlogMapper, Blog> implemen
             map.put(SysConf.LEVEL, blog.getLevel());
             map.put(SysConf.CREATE_TIME, blog.getCreateTime());
 
-            //发送到RabbitMq
-            rabbitTemplate.convertAndSend(SysConf.EXCHANGE_DIRECT, SysConf.CBLOG_BLOG, map);
+            rocketMQTemplate.syncSend(BlogMessage.TOPIC, map);
         }
     }
 

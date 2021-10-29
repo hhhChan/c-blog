@@ -58,7 +58,7 @@ public class WebConfig extends SuperEntity<WebConfig> {
      * 备案号
      */
     @TableField(updateStrategy = FieldStrategy.IGNORED)
-    private String recordNum;
+        private String recordNum;
 
     /**
      * 支付宝收款码FileId

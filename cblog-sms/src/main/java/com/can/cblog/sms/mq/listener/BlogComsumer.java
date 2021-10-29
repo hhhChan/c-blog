@@ -1,4 +1,4 @@
-package com.can.cblog.sms.listener;
+package com.can.cblog.sms.mq.listener;
 
 import com.can.cblog.base.enums.ESearchModel;
 import com.can.cblog.base.global.Constants;
@@ -6,13 +6,15 @@ import com.can.cblog.common.feign.SearchFeignClient;
 import com.can.cblog.common.feign.WebFeignClient;
 import com.can.cblog.sms.global.RedisConf;
 import com.can.cblog.sms.global.SysConf;
+import com.can.cblog.sms.mq.producer.message.BlogMessage;
 import com.can.cblog.utils.JsonUtils;
 import com.can.cblog.utils.RedisUtil;
 import com.can.cblog.utils.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -20,12 +22,15 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * 博客监听器【用于更新Redis和索引】
  * @author ccc
  */
-@Component
+@Service
+@RocketMQMessageListener(
+        topic = BlogMessage.TOPIC,
+        consumerGroup = "blog-consumer-group-" + BlogMessage.TOPIC
+)
 @Slf4j
-public class BlogListener {
+public class BlogComsumer implements RocketMQListener<BlogMessage> {
 
     @Autowired
     private RedisUtil redisUtil;
@@ -35,9 +40,9 @@ public class BlogListener {
 
     private SearchFeignClient searchFeignClient;
 
-    // TODO 在这里同时需要对Redis和ES进行操作，同时利用MQ来保证数据一致性
-    @RabbitListener(queues = "cblog.blog")
-    public void updateRedis(Map<String, String> map) {
+    @Override
+    public void onMessage(BlogMessage message) {
+        Map<String, String> map = message.getMap();
 
         if (map != null) {
             String comment = map.get(SysConf.COMMAND);

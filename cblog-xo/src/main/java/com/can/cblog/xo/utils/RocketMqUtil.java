@@ -2,8 +2,9 @@ package com.can.cblog.xo.utils;
 
 import com.can.cblog.common.entity.User;
 import com.can.cblog.xo.global.SysConf;
+import com.can.cblog.xo.producer.message.MailMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -13,18 +14,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 用于RabbitMQ发送消息
+ * 对邮箱发送的场景发送内容进行定制
  * @author ccc
  */
 @Slf4j
 @RefreshScope
 @Component
-public class RabbitMqUtil {
+public class RocketMqUtil {
 
-    public static final String EXCHANGE_DIRECT = "exchange.direct";
-    public static final String ROUTING_KEY_EMAIL = "cblog.email";
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private RocketMQTemplate rocketMQTemplate;
+
     @Value(value = "${data.web.url}")
     private String dataWebUrl;
     @Value(value = "${data.website.url}")
@@ -53,12 +53,12 @@ public class RabbitMqUtil {
      * @param text
      */
     private void sendEmail(String email, String text) {
-        Map<String, Object> result = new HashMap<>();
-        result.put(SysConf.SUBJECT, PROJECT_NAME);
-        result.put(SysConf.RECEIVER, email);
-        result.put(SysConf.TEXT, text);
-        //发送到RabbitMq
-        rabbitTemplate.convertAndSend(EXCHANGE_DIRECT, ROUTING_KEY_EMAIL, result);
+        MailMessage result = new MailMessage();
+        result.setSubject(PROJECT_NAME);
+        result.setReceiver(email);
+        result.setText(text);
+        //发送到RocketMq
+        rocketMQTemplate.syncSend(MailMessage.TOPIC, result);
     }
 
     /**

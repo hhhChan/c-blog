@@ -19,7 +19,7 @@ public class CheckUtils {
      * @return
      */
     public static boolean checkEmail(String email) {
-        boolean flag = false;
+        boolean flag;
         try {
             Pattern regex = Pattern.compile(CHECK_EMAIL_REGEX);
             Matcher matcher = regex.matcher(email);

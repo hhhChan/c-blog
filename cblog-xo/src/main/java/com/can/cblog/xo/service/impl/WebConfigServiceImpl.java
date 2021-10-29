@@ -161,6 +161,10 @@ public class WebConfigServiceImpl extends SuperServiceImpl<WebConfigMapper, WebC
         webConfig.setWeChat("");
 
         // 判断哪些联系方式需要显示出来
+        if (Constants.FALSE.equals(showListJson)) {
+            redisUtil.setEx(RedisConf.WEB_CONFIG, JsonUtils.objectToJson(webConfig), 24, TimeUnit.HOURS);
+            return webConfig;
+        }
         List<String> showList = JsonUtils.jsonToList(showListJson, String.class);
         for (String item : showList) {
             if (EAccountType.EMail.getCode().equals(item)) {

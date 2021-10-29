@@ -86,7 +86,7 @@ public class BaseSysConf {
 
 
     /**
-     * RabbitMQ的命令操作
+     * MQ的命令操作
      */
     public final static String COMMAND = "command";
     public final static String EDIT = "edit";
